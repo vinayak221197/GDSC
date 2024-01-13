@@ -1,0 +1,164 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class Product {
+  final String image;
+  final String name;
+  final double price;
+
+  Product({required this.image, required this.name, required this.price});
+}
+
+class ProductProvider with ChangeNotifier {
+  List<Product> _products = [
+    Product(image: 'assets/product1.jpg', name: 'Product 1', price: 10.99),
+    Product(image: 'assets/product2.jpg', name: 'Product 2', price: 19.99),
+    // Add more products here...
+  ];
+
+  List<Product> get products => _products;
+
+  List<Product> _cart = [];
+
+  List<Product> get cart => _cart;
+
+  double get totalCartPrice =>
+      _cart.fold(0, (total, product) => total + product.price);
+
+  void addToCart(Product product) {
+    _cart.add(product);
+    notifyListeners();
+  }
+
+  void removeFromCart(Product product) {
+    _cart.remove(product);
+    notifyListeners();
+  }
+
+  void clearCart() {
+    _cart.clear();
+    notifyListeners();
+  }
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: ChangeNotifierProvider(
+        create: (context) => ProductProvider(),
+        child: ProductListScreen(),
+      ),
+    );
+  }
+}
+
+class ProductListScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Product List'),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.shopping_cart),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CartScreen()),
+              );
+            },
+          ),
+        ],
+      ),
+      body: Consumer<ProductProvider>(
+        builder: (context, productProvider, child) {
+          return ListView.builder(
+            itemCount: productProvider.products.length,
+            itemBuilder: (context, index) {
+              Product product = productProvider.products[index];
+              bool isInCart = productProvider.cart.contains(product);
+
+              return ListTile(
+                leading: Image.asset(product.image),
+                title: Text(product.name),
+                subtitle: Text('\$${product.price}'),
+                trailing: isInCart
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check),
+                          IconButton(
+                            icon: Icon(Icons.remove),
+                            onPressed: () {
+                              productProvider.removeFromCart(product);
+                            },
+                          ),
+                        ],
+                      )
+                    : IconButton(
+                        icon: Icon(Icons.add_shopping_cart),
+                        onPressed: () {
+                          productProvider.addToCart(product);
+                        },
+                      ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class CartScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Shopping Cart'),
+      ),
+      body: Consumer<ProductProvider>(
+        builder: (context, productProvider, child) {
+          return Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  itemCount: productProvider.cart.length,
+                  itemBuilder: (context, index) {
+                    Product product = productProvider.cart[index];
+                    return ListTile(
+                      leading: Image.asset(product.image),
+                      title: Text(product.name),
+                      subtitle: Text('\$${product.price}'),
+                    );
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Total: \$${productProvider.totalCartPrice}'),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Handle the buy action (e.g., make a purchase)
+                        productProvider.clearCart();
+                      },
+                      child: Text('BUY'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
