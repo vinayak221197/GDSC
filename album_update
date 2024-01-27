@@ -1,0 +1,155 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(MyApp());
+}
+
+class Album {
+  final int id;
+  final String title;
+
+  Album({required this.id, required this.title});
+
+  factory Album.fromJson(Map<String, dynamic> json) {
+    return Album(
+      id: json['id'],
+      title: json['title'],
+    );
+  }
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Album App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: AlbumListScreen(),
+    );
+  }
+}
+
+class AlbumListScreen extends StatefulWidget {
+  @override
+  _AlbumListScreenState createState() => _AlbumListScreenState();
+}
+
+class _AlbumListScreenState extends State<AlbumListScreen> {
+  late List<Album> albums;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchAlbums();
+  }
+
+  Future<void> fetchAlbums() async {
+    final response = await http.get(Uri.parse('https://jsonplaceholder.typicode.com/albums'));
+    if (response.statusCode == 200) {
+      List<dynamic> jsonList = json.decode(response.body);
+      setState(() {
+        albums = jsonList.map((e) => Album.fromJson(e)).toList();
+      });
+    } else {
+      throw Exception('Failed to load albums');
+    }
+  }
+
+  Future<void> addAlbum(String title) async {
+    final response = await http.post(
+      Uri.parse('https://jsonplaceholder.typicode.com/albums'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'title': title}),
+    );
+
+    if (response.statusCode == 201) {
+      fetchAlbums(); // Refresh the list after adding a new album
+    } else {
+      throw Exception('Failed to add album');
+    }
+  }
+
+  Future<void> deleteAlbum(int id) async {
+    final response = await http.delete(Uri.parse('https://jsonplaceholder.typicode.com/albums/$id'));
+
+    if (response.statusCode == 200) {
+      fetchAlbums(); // Refresh the list after deleting an album
+    } else {
+      throw Exception('Failed to delete album');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Album List'),
+      ),
+      body: albums == null
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: albums.length,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  title: Text(albums[index].title),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete),
+                    onPressed: () => deleteAlbum(albums[index].id),
+                  ),
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          String result = await showDialog(
+            context: context,
+            builder: (context) => AddAlbumDialog(),
+          );
+
+          if (result != null && result.isNotEmpty) {
+            await addAlbum(result);
+          }
+        },
+        child: Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+class AddAlbumDialog extends StatefulWidget {
+  @override
+  _AddAlbumDialogState createState() => _AddAlbumDialogState();
+}
+
+class _AddAlbumDialogState extends State<AddAlbumDialog> {
+  final TextEditingController titleController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('Add New Album'),
+      content: TextField(
+        controller: titleController,
+        decoration: InputDecoration(labelText: 'Title'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context, titleController.text);
+          },
+          child: Text('Add'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          child: Text('Cancel'),
+        ),
+      ],
+    );
+  }
+}
