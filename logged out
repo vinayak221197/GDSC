@@ -1,0 +1,134 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: HomePage(),
+      routes: {
+        '/details': (context) => DetailsPage(),
+      },
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  TextEditingController nameController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController rollNoController = TextEditingController();
+  TextEditingController phoneNumberController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('User Details App'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(labelText: 'Name'),
+            ),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(labelText: 'Email'),
+            ),
+            TextField(
+              controller: rollNoController,
+              decoration: InputDecoration(labelText: 'Roll No'),
+            ),
+            TextField(
+              controller: phoneNumberController,
+              decoration: InputDecoration(labelText: 'Phone Number'),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                String name = nameController.text;
+                String email = emailController.text;
+                String rollNo = rollNoController.text;
+                String phoneNumber = phoneNumberController.text;
+
+                Navigator.pushNamed(
+                  context,
+                  '/details',
+                  arguments: {
+                    'name': name,
+                    'email': email,
+                    'rollNo': rollNo,
+                    'phoneNumber': phoneNumber,
+                  },
+                ).then((value) {
+                  if (value != null) {
+                    // Show logout popup
+                    showDialog(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text('User $value Logged out'),
+                        actions: [
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                            },
+                            child: Text('OK'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                });
+              },
+              child: Text('Show Details'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class DetailsPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final Map<String, String> userDetails =
+        ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('User Details'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('Name: ${userDetails['name']}'),
+            Text('Email: ${userDetails['email']}'),
+            Text('Roll No: ${userDetails['rollNo']}'),
+            Text('Phone Number: ${userDetails['phoneNumber']}'),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context, userDetails['name']);
+              },
+              child: Text('Logout'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
